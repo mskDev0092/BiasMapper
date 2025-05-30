@@ -4,6 +4,10 @@
 
 **Try it [LLM Preset Link](https://lmstudio.ai/developer025/bias-mapper)**
 
+**Use it [Hugging Face AI/LLM Link](https://hf.co/chat/assistant/6839d566c9c9920bae87dc06)**
+
+**Website (Coming soon) [Link](https://mskdev0092.github.io/BiasMapper/)**
+
 ---
 
 ## 🧭 Overview
