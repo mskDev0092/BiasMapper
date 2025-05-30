@@ -1,100 +1,253 @@
-### **Name for the Framework**
-**"BiasMapper: A Directional Framework for Fair and Balanced Analysis"**
+# 📐 **BiasMapper**
+
+**A Directional Framework for Fair and Balanced Analysis**
+
+**Try it [LLM Preset Link](https://lmstudio.ai/developer025/bias-mapper)**
 
 ---
 
-### **Short Description**
-**BiasMapper** is a structured framework that uses directional bias categories (`L`, `L+`, `C`, `R`, `R+`, `T`, `T+`, `B`, `B+`) to analyze and classify content across domains like politics, religion, economics, news, and culture. It dynamically aggregates multiple perspectives to produce fair, balanced, and interpretable outputs. Use BiasMapper to ensure nuanced understanding, mitigate overemphasis on single viewpoints, and adapt to diverse contexts.
+## 🧭 Overview
+
+**BiasMapper** is a structured framework designed to detect, apply, and neutralize directional biases in content. It classifies perspectives using a directional system:
+`L`, `L+`, `C`, `R`, `R+`, `T`, `T+`, `B`, `B+`, and their extreme counterparts (`++`).
+Use it to analyze political discourse, media coverage, cultural content, and more — with fairness, interpretability, and adaptability.
 
 ---
 
-### **Why Use BiasMapper?**
-1. **Fairness**: Respects all perspectives, ensuring no single bias dominates unnecessarily.
-2. **Balance**: Dynamically combines multiple biases for a holistic view.
-3. **Interpretability**: Clear directional notation makes biases easy to understand and act upon.
-4. **Versatility**: Applicable to any domain or context, from political speeches to cultural critiques.
-5. **Scalability**: Easily extendable to new domains or biases without disrupting the core framework.
+## 🎯 Why Use BiasMapper?
+
+* **⚖️ Fairness**: Respects multiple viewpoints; avoids dominance of any single ideology.
+* **📊 Balance**: Aggregates perspectives to produce more holistic, nuanced outputs.
+* **🔍 Interpretability**: Clear bias codes (e.g., `L++`, `B+`) make it easy to understand orientation and intensity.
+* **🌐 Versatility**: Effective across domains: politics, religion, economics, culture, and beyond.
+* **📈 Scalability**: Easily extendable to new bias axes or perspectives without altering the core framework.
 
 ---
 
-### **Sample/Example output (Disclaimer! output of different LLM models maybe different)**
-To test **BiasMapper** on news channels, we can create a **chart** that maps various news outlets to the directional bias framework (`L`, `L+`, `C`, `R`, `R+`, `T`, `T+`, `B`, `B+`). This will help us classify each channel based on its ideological leanings and societal positioning. Here's how we can approach this:
+## 🔬 Test Scenarios
 
----
+### ✅ **Test 1: Bias Detection**
 
-### **1. Methodology**
-- **Step 1**: Identify the dominant biases of each news channel.
-  - **Ideological Leaning**: Progressive (`L`), Conservative (`R`), or Neutral (`C`).
-  - **Societal Positioning**: Mainstream (`T`) or Marginalized (`B`).
-  - **Intensity Levels**: Moderate (`+`) or Extreme (`++`).
-- **Step 2**: Map the channels onto the directional bias framework.
-- **Step 3**: Create a chart summarizing the classifications.
+**Prompt:**
 
----
-
-### **2. Sample News Channels and Their Bias Mapping**
-
-| **News Channel**         | **Dominant Bias**       | **Secondary Bias**      | **Explanation**                                                                 |
-|---------------------------|-------------------------|--------------------------|---------------------------------------------------------------------------------|
-| **CNN**                   | **T+** (Mainstream)    | **L+** (Moderate Progressive) | CNN leans slightly progressive but aligns with mainstream narratives.           |
-| **Fox News**              | **T+** (Mainstream)    | **R++** (Extreme Conservative) | Fox News promotes conservative ideologies and reflects entrenched power structures. |
-| **MSNBC**                 | **L++** (Extreme Progressive) | **T+** (Mainstream)     | MSNBC strongly advocates for progressive reforms while remaining mainstream.    |
-| **Breitbart**             | **R++** (Extreme Conservative) | **B+** (Marginalized Dissent) | Breitbart champions far-right views and often challenges mainstream narratives. |
-| **The Guardian**          | **L+** (Moderate Progressive) | **B+** (Marginalized Advocacy) | The Guardian supports progressive ideals and amplifies underrepresented voices. |
-| **Al Jazeera**            | **B+** (Marginalized Advocacy) | **L+** (Moderate Progressive) | Al Jazeera focuses on grassroots perspectives and progressive global issues.    |
-| **RT (Russia Today)**     | **R+** (Moderate Conservative) | **B++** (Radical Opposition) | RT critiques Western elites and promotes dissenting narratives globally.        |
-| **BBC**                   | **T+** (Mainstream)    | **C** (Neutral Alignment) | BBC strives for balanced reporting but aligns with mainstream institutions.     |
-| **Democracy Now!**        | **L++** (Extreme Progressive) | **B++** (Radical Opposition) | Democracy Now! advocates for systemic change and amplifies marginalized voices.|
-| **One America News (OANN)** | **R++** (Extreme Conservative) | **T+** (Mainstream)     | OANN promotes far-right ideologies while aligning with mainstream conservatives.|
-
----
-
-### **3. Visual Chart**
-
-Here’s a visual representation of the news channels mapped onto the directional bias framework:
-
-```
-          Top 2 (T++)       Top 1 (T+)
-              ↑                 ↑
-Left 2 (L++) ← Center (C) → Right 2 (R++)
-              ↓                 ↓
-        Bottom 2 (B++)    Bottom 1 (B+)
+```text
+Analyze the bias in this paragraph:  
+“We must dismantle the structures of corporate greed that harm the working class and instead build an economy centered on justice and equity.”
 ```
 
-#### **Mapping**:
-- **Top 1 (T+)**: CNN, Fox News, MSNBC, BBC, OANN.  
-- **Left 2 (L++)**: MSNBC, Democracy Now!.  
-- **Right 2 (R++)**: Fox News, Breitbart, OANN.  
-- **Bottom 1 (B+)**: The Guardian, Al Jazeera.  
-- **Bottom 2 (B++)**: RT, Democracy Now!.  
-- **Center (C)**: BBC (neutral alignment).
+**Expected Output:**
+
+```json
+{
+  "bias_analysis": {
+    "primary": "L++",
+    "description": "Strong progressive stance focused on anti-corporate sentiment, systemic critique, and economic justice.",
+    "secondary": "B+",
+    "description_secondary": "Advocates for grassroots change, aligns with oppositional and dissenting perspectives."
+  },
+  "summary": "This text expresses radical progressive views (L++) with a bottom-up societal framing (B+)."
+}
+```
 
 ---
 
-### **4. Why Use This Chart?**
-- **Classification**: Clearly classifies each news channel based on its ideological and societal positioning.
-- **Fairness**: Ensures no single channel is unfairly judged; all are mapped objectively.
-- **Interpretability**: Makes it easy to understand the biases of different outlets at a glance.
-- **Testing BiasMapper**: Demonstrates how the framework works in practice by applying it to real-world examples.
+### ✅ **Test 2: Debias Text**
+
+**Prompt:**
+
+```text
+Debias this statement:  
+“Conservatives always protect the rich while ignoring the poor.”
+```
+
+**Expected Output:**
+
+```text
+Original shows strong L+ bias with accusatory tone.
+
+Neutralized version:  
+“Some critics argue that certain conservative policies disproportionately benefit the wealthy, though others believe these approaches promote broader economic growth.”
+```
 
 ---
 
-### **5. Example Analysis**
-Let’s analyze two channels in detail:
+### ✅ **Test 3: Generate Text from a Given Bias**
 
-#### **CNN**:
-- **Dominant Bias**: **T+** (Mainstream).  
-- **Secondary Bias**: **L+** (Moderate Progressive).  
-- **Reasoning**: CNN aligns with mainstream narratives but occasionally leans progressive on social issues.
+**Prompt:**
 
-#### **Fox News**:
-- **Dominant Bias**: **R++** (Extreme Conservative).  
-- **Secondary Bias**: **T+** (Mainstream).  
-- **Reasoning**: Fox News promotes far-right ideologies while maintaining mainstream influence.
+```text
+Write a short story from a B++ perspective about healthcare.
+```
+
+**Expected Output:**
+
+```text
+In the crumbling neighborhood of Eastbrook, Marisol ran a volunteer clinic with hand-me-down supplies and no funding.  
+The system had failed them—again.  
+Politicians promised reforms, but it was the people, organizing in abandoned schools and churches, who brought real care to the forgotten corners of the city...
+```
+
+> *(Tone: Dissenting, grassroots, systemic critique → B++)*
 
 ---
 
-### **6. Boxed Final Answer**
-$$
-\boxed{\text{Use BiasMapper to classify news channels into directional biases (L, R, T, B, C) with intensity levels (+/++). Create a chart summarizing their alignments for fair and balanced analysis.}}
-$$
+### ✅ **Test 4: Mixed Bias Chart**
+
+**Prompt:**
+
+```text
+Analyze and chart the ideological biases in this op-ed:  
+“Tax cuts for the wealthy have never trickled down. It's time to tax billionaires and reinvest in public infrastructure.”
+```
+
+**Expected Output:**
+
+#### Bias Summary
+
+* `L+`: Progressive economic critique
+* `B+`: Challenges dominant economic narratives
+* `C`: Includes some factual observations
+
+#### Bias Weight Chart
+
+| Bias Code | Weight |
+| --------- | ------ |
+| L+        | 0.5    |
+| B+        | 0.3    |
+| C         | 0.2    |
+
+```
+L+ : ██████░░░░ 50%  
+B+ : ████░░░░░░ 30%  
+C  : ██░░░░░░░░ 20%
+```
+
+---
+
+### ✅ **Test 5: Neutral Output**
+
+**Prompt:**
+
+```text
+Write a neutral blog post explaining quantum computing to beginners.
+```
+
+**Expected Output:**
+
+```text
+Quantum computing is an advanced field that leverages the principles of quantum mechanics to perform calculations.  
+Unlike classical computers, which use bits, quantum computers use qubits, allowing them to process complex problems more efficiently...
+```
+
+> *(Framework outputs center-aligned, bias-free content → C)*
+
+---
+
+### ✅ **Test 6: Creative Writing with Applied Bias**
+
+**Prompt:**
+
+```text
+Create a poem about climate change from an R+ and T+ perspective.
+```
+
+**Expected Output:**
+
+```text
+The market adapts, as it always has,  
+Through enterprise, not reckless bans.  
+Innovation lights the greenest path,  
+Not panic-driven climate wrath.
+
+Protect our homes, protect our land,  
+But not by tightening freedom's hand.
+```
+
+> *(Tone: Conservative, institutional trust → R+ / T+)*
+
+---
+
+## 📺 Example: News Channel Bias Mapping
+
+A demonstration of how **BiasMapper** classifies media outlets by directional bias.
+
+### 📌 Methodology
+
+1. **Identify** ideological and societal positions:
+
+   * **L** (Left), **R** (Right), **C** (Center)
+   * **T** (Top/Establishment), **B** (Bottom/Oppositional)
+   * **+ / ++** for intensity
+2. **Map** each outlet to its position
+3. **Visualize** the result in a matrix and chart
+
+---
+
+### 🧾 News Channel Mapping
+
+| News Channel          | Dominant Bias           | Secondary Bias          | Explanation                                                     |
+| --------------------- | ----------------------- | ----------------------- | --------------------------------------------------------------- |
+| **CNN**               | `T+` (Mainstream)       | `L+` (Mod. Progressive) | Aligns with mainstream but leans progressive on social issues   |
+| **Fox News**          | `T+` (Mainstream)       | `R++` (Far Right)       | Strong conservative bias in mainstream context                  |
+| **MSNBC**             | `L++` (Far Left)        | `T+` (Mainstream)       | Strong progressive reform advocacy, still establishment-aligned |
+| **Breitbart**         | `R++` (Far Right)       | `B+` (Oppositional)     | Challenges establishment, champions far-right ideology          |
+| **The Guardian**      | `L+` (Mod. Progressive) | `B+` (Dissent)          | Amplifies progressive and marginalized views                    |
+| **Al Jazeera**        | `B+` (Grassroots)       | `L+` (Mod. Progressive) | Global progressive issues from the margins                      |
+| **RT (Russia Today)** | `R+` (Conservative)     | `B++` (Radical Dissent) | Challenges Western power structures aggressively                |
+| **BBC**               | `T+` (Mainstream)       | `C` (Neutral)           | Institutionally balanced, establishment-aligned                 |
+| **Democracy Now!**    | `L++` (Far Left)        | `B++` (Radical)         | Amplifies systemic opposition and grassroots organizing         |
+| **OANN**              | `R++` (Far Right)       | `T+` (Mainstream)       | Strong conservative lean within institutional frames            |
+
+---
+
+### 📊 Visual Positioning
+
+```
+          T++ (Establishment Extreme)
+                 ↑
+  L++ ←——— C (Neutral) ——→ R++
+                 ↓
+          B++ (Radical Dissent)
+```
+
+**Mapped Examples:**
+
+* **T+**: CNN, BBC, Fox, MSNBC, OANN
+* **L++**: MSNBC, Democracy Now!
+* **R++**: Fox, Breitbart, OANN
+* **B+**: The Guardian, Al Jazeera
+* **B++**: RT, Democracy Now!
+* **C**: BBC
+
+---
+
+## 🎓 Example Deep Dives
+
+### 📌 CNN
+
+* **Dominant**: `T+`
+* **Secondary**: `L+`
+* **Rationale**: Generally mainstream with progressive lean on social justice topics.
+
+### 📌 Fox News
+
+* **Dominant**: `R++`
+* **Secondary**: `T+`
+* **Rationale**: Aggressively conservative, yet widely distributed through mainstream institutions.
+
+---
+
+## 🧮 Boxed Summary
+
+> $$
+> \boxed{\text{Use BiasMapper to classify ideological and societal positions (L, R, T, B, C) with +/++ intensity. Generate charts, analyze bias, and create fairer outputs.}}
+> $$
+
+---
+
+## 🚧 Disclaimer
+
+Output may vary by LLM model. BiasMapper provides **directional classification** as a guide, not an absolute truth. Always review and validate critical content in context.
+
+---
+
