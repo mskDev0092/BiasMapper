@@ -3,286 +3,486 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BiasMapper - Fair and Balanced Analysis</title>
+    <title>BiasMapper: Fair and Balanced Analysis Across Perspectives</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Custom CSS for elements that need more specific styling */
         .bias-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 10px;
-            width: 300px;
-            height: 300px;
-            margin: 0 auto;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 4px;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 1/1;
         }
-        .bias-cell {
+        
+        .grid-cell {
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            cursor: pointer;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: help;
         }
-        .bias-cell:hover {
+        
+        .grid-cell:hover {
             transform: scale(1.05);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        .result-visualization {
-            width: 100%;
-            height: 200px;
+        
+        .tooltip {
             position: relative;
+            display: inline-block;
         }
-        .bias-indicator {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            height: 300px;
-            margin: 20px 0;
-        }
-        .chart-axis {
-            position: absolute;
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
             background-color: #333;
-        }
-        .horizontal-axis {
-            width: 100%;
-            height: 2px;
-            top: 50%;
-            left: 0;
-        }
-        .vertical-axis {
-            width: 2px;
-            height: 100%;
-            left: 50%;
-            top: 0;
-        }
-        .chart-label {
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
             position: absolute;
-            font-size: 12px;
-            color: #333;
-        }
-        .left-label {
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        .right-label {
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        .top-label {
-            top: 10px;
+            z-index: 1;
+            bottom: 125%;
             left: 50%;
-            transform: translateX(-50%);
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
-        .bottom-label {
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
         }
-        .center-label {
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(255,255,255,0.8);
-            padding: 5px;
-            border-radius: 5px;
+        
+        .loading-dots {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
-        .bias-dot {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: all 0.5s ease;
-        }
-        .nav-link {
-            position: relative;
-        }
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: -2px;
-            left: 0;
+        
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            margin: 0 2px;
             background-color: #3b82f6;
-            transition: width 0.3s ease;
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out both;
         }
-        .nav-link:hover::after {
-            width: 100%;
+        
+        .loading-dots span:nth-child(1) {
+            animation-delay: -0.32s;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        
+        .loading-dots span:nth-child(2) {
+            animation-delay: -0.16s;
         }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { 
+                transform: scale(0);
+            } 40% { 
+                transform: scale(1);
+            }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Animation for page transitions */
         .fade-in {
-            animation: fadeIn 0.8s ease forwards;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans">
+<body class="bg-gray-50 font-sans text-gray-800">
     <!-- Navigation -->
-    <nav class="bg-white shadow-md sticky top-0 z-50">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl">BM</div>
-                <span class="text-xl font-bold text-gray-800">BiasMapper</span>
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <i class="fas fa-balance-scale-left text-blue-600 text-2xl mr-2"></i>
+                        <span class="text-xl font-bold text-blue-600">BiasMapper</span>
+                    </div>
+                </div>
+                <div class="hidden md:ml-6 md:flex md:items-center md:space-x-8">
+                    <a href="#home" class="nav-link text-blue-600 border-blue-500 px-1 pt-1 border-b-2 font-medium">Home</a>
+                    <a href="#about" class="nav-link hover:text-gray-900 hover:border-gray-300 px-1 pt-1 border-b-2 border-transparent font-medium">About</a>
+                    <a href="#how-it-works" class="nav-link hover:text-gray-900 hover:border-gray-300 px-1 pt-1 border-b-2 border-transparent font-medium">How It Works</a>
+                    <a href="#tool" class="nav-link hover:text-gray-900 hover:border-gray-300 px-1 pt-1 border-b-2 border-transparent font-medium">Tool</a>
+                    <a href="#resources" class="nav-link hover:text-gray-900 hover:border-gray-300 px-1 pt-1 border-b-2 border-transparent font-medium">Resources</a>
+                    <a href="#contact" class="nav-link hover:text-gray-900 hover:border-gray-300 px-1 pt-1 border-b-2 border-transparent font-medium">Contact</a>
+                </div>
+                <div class="-mr-2 flex items-center md:hidden">
+                    <button type="button" id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
+                        <span class="sr-only">Open main menu</span>
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
             </div>
-            <div class="hidden md:flex space-x-8">
-                <a href="#home" class="nav-link text-gray-700 hover:text-blue-500 transition">Home</a>
-                <a href="#about" class="nav-link text-gray-700 hover:text-blue-500 transition">About</a>
-                <a href="#how-it-works" class="nav-link text-gray-700 hover:text-blue-500 transition">How It Works</a>
-                <a href="#demo" class="nav-link text-gray-700 hover:text-blue-500 transition">Demo</a>
-                <a href="#resources" class="nav-link text-gray-700 hover:text-blue-500 transition">Resources</a>
-                <a href="#contact" class="nav-link text-gray-700 hover:text-blue-500 transition">Contact</a>
-            </div>
-            <button class="md:hidden text-gray-700 focus:outline-none" id="mobile-menu-button">
-                <i class="fas fa-bars text-2xl"></i>
-            </button>
         </div>
+        
         <!-- Mobile menu -->
-        <div class="md:hidden hidden bg-white w-full px-4 py-2 shadow-md" id="mobile-menu">
-            <div class="flex flex-col space-y-3">
-                <a href="#home" class="text-gray-700 hover:text-blue-500 py-2">Home</a>
-                <a href="#about" class="text-gray-700 hover:text-blue-500 py-2">About</a>
-                <a href="#how-it-works" class="text-gray-700 hover:text-blue-500 py-2">How It Works</a>
-                <a href="#demo" class="text-gray-700 hover:text-blue-500 py-2">Demo</a>
-                <a href="#resources" class="text-gray-700 hover:text-blue-500 py-2">Resources</a>
-                <a href="#contact" class="text-gray-700 hover:text-blue-500 py-2">Contact</a>
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#home" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-blue-600 bg-blue-50">Home</a>
+                <a href="#about" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-gray-900 hover:bg-gray-50">About</a>
+                <a href="#how-it-works" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-gray-900 hover:bg-gray-50">How It Works</a>
+                <a href="#tool" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-gray-900 hover:bg-gray-50">Tool</a>
+                <a href="#resources" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-gray-900 hover:bg-gray-50">Resources</a>
+                <a href="#contact" class="nav-link-mobile block px-3 py-2 rounded-md text-base font-medium text-gray-900 hover:text-gray-900 hover:bg-gray-50">Contact</a>
             </div>
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section id="home" class="py-20 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <div class="container mx-auto px-4">
-            <div class="flex flex-col md:flex-row items-center">
-                <div class="md:w-1/2 mb-10 md:mb-0 fade-in">
-                    <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Fair and Balanced Analysis Across Perspectives</h1>
-                    <p class="text-lg text-gray-600 mb-8">BiasMapper classifies content into directional biases (L, R, T, B, C) with intensity levels for nuanced understanding of media, politics, and culture.</p>
-                    <div class="flex space-x-4">
-                        <a href="#demo" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition shadow-md">Try BiasMapper Now</a>
-                        <a href="#about" class="border border-blue-500 text-blue-500 hover:bg-blue-50 px-6 py-3 rounded-lg font-medium transition">Learn More</a>
+    <!-- Homepage -->
+    <section id="home" class="fade-in py-16 md:py-24 bg-gradient-to-br from-blue-50 to-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="lg:grid lg:grid-cols-2 lg:gap-12 items-center">
+                <div class="mb-12 lg:mb-0">
+                    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                        BiasMapper: <span class="text-blue-600">Fair and Balanced</span> Analysis Across Perspectives
+                    </h1>
+                    <p class="text-xl text-gray-600 mb-8">
+                        Uncover and understand ideological, societal, and cognitive biases in text content using our advanced directional framework. Perfect for journalists, educators, researchers, and critical thinkers.
+                    </p>
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                        <a href="#tool" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 text-center">
+                            Try BiasMapper Now
+                        </a>
+                        <a href="#about" class="bg-white hover:bg-gray-100 text-blue-600 font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 text-center border border-gray-200">
+                            Learn More
+                        </a>
                     </div>
                 </div>
-                <div class="md:w-1/2 flex justify-center fade-in" style="animation-delay: 0.3s;">
-                    <div class="bg-white p-6 rounded-xl shadow-xl max-w-md">
-                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Bias Framework</h3>
-                        <div class="bias-grid">
-                            <div class="bias-cell bg-red-100" data-bias="T+">
-                                <span class="font-bold text-red-600">T+</span>
-                            </div>
-                            <div class="bias-cell bg-red-200" data-bias="T">
-                                <span class="font-bold text-red-700">T</span>
-                            </div>
-                            <div class="bias-cell bg-red-100" data-bias="T+">
-                                <span class="font-bold text-red-600">T+</span>
-                            </div>
-                            <div class="bias-cell bg-blue-100" data-bias="L">
-                                <span class="font-bold text-blue-700">L</span>
-                            </div>
-                            <div class="bias-cell bg-gray-200" data-bias="C">
-                                <span class="font-bold text-gray-700">C</span>
-                            </div>
-                            <div class="bias-cell bg-purple-100" data-bias="R">
-                                <span class="font-bold text-purple-700">R</span>
-                            </div>
-                            <div class="bias-cell bg-green-100" data-bias="B+">
-                                <span class="font-bold text-green-600">B+</span>
-                            </div>
-                            <div class="bias-cell bg-green-200" data-bias="B">
-                                <span class="font-bold text-green-700">B</span>
-                            </div>
-                            <div class="bias-cell bg-green-100" data-bias="B+">
-                                <span class="font-bold text-green-600">B+</span>
-                            </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Bias Directional Framework</h3>
+                    <div class="bias-grid">
+                        <!-- Top Row (T++) -->
+                        <div class="grid-cell bg-red-100 text-red-800 tooltip" style="grid-column: 3; grid-row: 1;">
+                            T++
+                            <span class="tooltiptext">Strong Topical Bias: Focuses heavily on specific topics while ignoring others</span>
                         </div>
-                        <p class="text-sm text-gray-600 mt-4 text-center">L: Left | R: Right | T: Traditional | B: Bottom-up | C: Centrist</p>
+                        
+                        <!-- Second Row (T+) -->
+                        <div class="grid-cell bg-red-50 text-red-600 tooltip" style="grid-column: 2; grid-row: 2;">
+                            T+
+                            <span class="tooltiptext">Moderate Topical Bias: Emphasizes certain topics more than others</span>
+                        </div>
+                        <div class="grid-cell bg-red-50 text-red-600 tooltip" style="grid-column: 4; grid-row: 2;">
+                            T+
+                            <span class="tooltiptext">Moderate Topical Bias: Emphasizes certain topics more than others</span>
+                        </div>
+                        
+                        <!-- Left Column (L++) -->
+                        <div class="grid-cell bg-blue-100 text-blue-800 tooltip" style="grid-column: 1; grid-row: 3;">
+                            L++
+                            <span class="tooltiptext">Strong Left Ideological Bias: Far-left political perspective</span>
+                        </div>
+                        
+                        <!-- Left Center Column (L+) -->
+                        <div class="grid-cell bg-blue-50 text-blue-600 tooltip" style="grid-column: 2; grid-row: 3;">
+                            L+
+                            <span class="tooltiptext">Moderate Left Ideological Bias: Center-left political perspective</span>
+                        </div>
+                        
+                        <!-- Center -->
+                        <div class="grid-cell bg-gray-100 text-gray-800 font-bold tooltip" style="grid-column: 3; grid-row: 3;">
+                            C
+                            <span class="tooltiptext">Centrist: Balanced perspective with minimal bias</span>
+                        </div>
+                        
+                        <!-- Right Center Column (R+) -->
+                        <div class="grid-cell bg-purple-50 text-purple-600 tooltip" style="grid-column: 4; grid-row: 3;">
+                            R+
+                            <span class="tooltiptext">Moderate Right Ideological Bias: Center-right political perspective</span>
+                        </div>
+                        
+                        <!-- Right Column (R++) -->
+                        <div class="grid-cell bg-purple-100 text-purple-800 tooltip" style="grid-column: 5; grid-row: 3;">
+                            R++
+                            <span class="tooltiptext">Strong Right Ideological Bias: Far-right political perspective</span>
+                        </div>
+                        
+                        <!-- Bottom Row (B++) -->
+                        <div class="grid-cell bg-green-100 text-green-800 tooltip" style="grid-column: 3; grid-row: 5;">
+                            B++
+                            <span class="tooltiptext">Strong Baseline Bias: Assumes certain foundational perspectives as absolute truth</span>
+                        </div>
+                        
+                        <!-- Second Bottom Row (B+) -->
+                        <div class="grid-cell bg-green-50 text-green-600 tooltip" style="grid-column: 2; grid-row: 4;">
+                            B+
+                            <span class="tooltiptext">Moderate Baseline Bias: Subtle assumptions about foundational perspectives</span>
+                        </div>
+                        <div class="grid-cell bg-green-50 text-green-600 tooltip" style="grid-column: 4; grid-row: 4;">
+                            B+
+                            <span class="tooltiptext">Moderate Baseline Bias: Subtle assumptions about foundational perspectives</span>
+                        </div>
                     </div>
+                    <p class="text-sm text-gray-500 mt-4 text-center">Hover over each label to learn about different bias types</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- About Section -->
-    <section id="about" class="py-20 bg-white">
-        <div class="container mx-auto px-4">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">About BiasMapper</h2>
-                <div class="w-20 h-1 bg-blue-500 mx-auto"></div>
-            </div>
-            
-            <div class="flex flex-col md:flex-row gap-12">
-                <div class="md:w-1/2 fade-in">
-                    <h3 class="text-2xl font-semibold text-gray-800 mb-4">What is BiasMapper?</h3>
-                    <p class="text-gray-600 mb-6">BiasMapper is an innovative framework designed to analyze and classify content across multiple dimensions of bias. Unlike traditional left-right spectrums, our model incorporates vertical (top-down vs bottom-up) perspectives for more comprehensive analysis.</p>
-                    
-                    <h3 class="text-2xl font-semibold text-gray-800 mb-4">Why It Matters</h3>
-                    <p class="text-gray-600 mb-6">In today's complex information landscape, understanding bias is crucial for media literacy, critical thinking, and balanced decision-making. BiasMapper provides a nuanced approach that goes beyond simple partisan classifications.</p>
-                    
-                    <div class="bg-blue-50 p-6 rounded-lg border-l-4 border-blue-500">
-                        <h4 class="font-semibold text-blue-800 mb-2">Our Mission</h4>
-                        <p class="text-blue-700">To promote fairness, inclusivity, and balanced analysis by making bias visible and understandable.</p>
+    <!-- Features Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Key Features</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-gray-50 p-6 rounded-xl hover:shadow-md transition duration-300">
+                    <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-search text-blue-600 text-xl"></i>
                     </div>
+                    <h3 class="text-xl font-semibold mb-2">Bias Detection</h3>
+                    <p class="text-gray-600">
+                        Identify ideological (L++ to R++), societal (T++ to B++), and cognitive biases in any text content with our advanced NLP algorithms.
+                    </p>
                 </div>
+                <div class="bg-gray-50 p-6 rounded-xl hover:shadow-md transition duration-300">
+                    <div class="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-sliders-h text-purple-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Bias Adjustment</h3>
+                    <p class="text-gray-600">
+                        Reframe content to a specific bias perspective or neutralize it to a more balanced viewpoint with a single click.
+                    </p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-xl hover:shadow-md transition duration-300">
+                    <div class="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                        <i class="fas fa-chart-pie text-green-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Visual Analytics</h3>
+                    <p class="text-gray-600">
+                        Understand bias patterns through intuitive visualizations including heatmaps, vector scores, and confidence metrics.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Page -->
+    <section id="about" class="fade-in py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-4">About BiasMapper</h2>
+            <p class="text-xl text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                Our framework provides a nuanced approach to understanding bias beyond simple left-right dichotomies.
+            </p>
+            
+            <div class="bg-white p-6 rounded-xl shadow-sm mb-12">
+                <h3 class="text-2xl font-semibold mb-4 text-blue-600">The BiasMapper Framework</h3>
+                <p class="text-gray-700 mb-6">
+                    BiasMapper analyzes content along two primary axes: <strong>Ideological</strong> (Left to Right) and <strong>Societal</strong> (Topical to Baseline), with intensity levels ranging from neutral (C) to extreme (++).
+                </p>
                 
-                <div class="md:w-1/2 fade-in" style="animation-delay: 0.3s;">
-                    <h3 class="text-2xl font-semibold text-gray-800 mb-4">The Bias Framework</h3>
-                    <div class="bg-gray-50 p-6 rounded-lg mb-6">
-                        <div class="flex flex-wrap gap-4 mb-6">
-                            <div class="flex items-center">
-                                <div class="w-6 h-6 bg-blue-200 rounded-full mr-2"></div>
-                                <span class="text-gray-700">L (Left)</span>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="w-6 h-6 bg-purple-200 rounded-full mr-2"></div>
-                                <span class="text-gray-700">R (Right)</span>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="w-6 h-6 bg-red-200 rounded-full mr-2"></div>
-                                <span class="text-gray-700">T (Traditional)</span>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="w-6 h-6 bg-green-200 rounded-full mr-2"></div>
-                                <span class="text-gray-700">B (Bottom-up)</span>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="w-6 h-6 bg-gray-200 rounded-full mr-2"></div>
-                                <span class="text-gray-700">C (Centrist)</span>
-                            </div>
-                        </div>
-                        <p class="text-gray-600 mb-4">Each primary bias has intensity levels:</p>
-                        <ul class="list-disc pl-5 text-gray-600 space-y-2">
-                            <li><span class="font-medium">+</span> Moderate intensity (e.g., L+, R+)</li>
-                            <li><span class="font-medium">++</span> Strong intensity (e.g., L++, R++)</li>
-                            <li>No symbol indicates neutral position within that category</li>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="text-lg font-semibold mb-3 text-gray-800">Ideological Axis (Left/Right)</h4>
+                        <ul class="space-y-3">
+                            <li class="flex items-start">
+                                <span class="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">L++</span>
+                                <span class="text-gray-700"><strong>Strong Left:</strong> Far-left political perspective with radical viewpoints</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="bg-blue-50 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">L+</span>
+                                <span class="text-gray-700"><strong>Moderate Left:</strong> Center-left political perspective with progressive leanings</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="bg-gray-200 text-gray-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">C</span>
+                                <span class="text-gray-700"><strong>Centrist:</strong> Balanced perspective with minimal ideological bias</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="bg-purple-50 text-purple-600 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">R+</span>
+                                <span class="text-gray-700"><strong>Moderate Right:</strong> Center-right political perspective with conservative leanings</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="bg-purple-100 text-purple-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">R++</span>
+                                <span class="text-gray-700"><strong>Strong Right:</strong> Far-right political perspective with radical viewpoints</span>
+                            </li>
                         </ul>
                     </div>
-                    
-                    <h3 class="text-2xl font-semibold text-gray-800 mb-4">Applications</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-indigo-50 p-4 rounded-lg">
-                            <i class="fas fa-newspaper text-indigo-500 text-2xl mb-2"></i>
-                            <h4 class="font-medium text-indigo-800">Media Analysis</h4>
+                    <div>
+                        <h4 class="text-lg font-semibold mb-3 text-gray-800">Societal Axis (Topical/Baseline)</h4>
+                        <ul class="space-y-3">
+                            <li class="flex items-start">
+                                <span class="bg-red-100 text-red-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">T++</span>
+                                <span class="text-gray-700"><strong>Strong Topical:</strong> Focuses heavily on specific topics while ignoring others</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="bg-red-50 text-red-600 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">T+</span>
+                                <span class="text-gray-700"><strong>Moderate Topical:</strong> Emphasizes certain topics more than others</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="bg-gray-200 text-gray-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">C</span>
+                                <span class="text-gray-700"><strong>Balanced:</strong> Even coverage of relevant topics</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="bg-green-50 text-green-600 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">B+</span>
+                                <span class="text-gray-700"><strong>Moderate Baseline:</strong> Subtle assumptions about foundational perspectives</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="bg-green-100 text-green-800 rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0">B++</span>
+                                <span class="text-gray-700"><strong>Strong Baseline:</strong> Assumes certain foundational perspectives as absolute truth</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <h3 class="text-2xl font-semibold mb-6 text-center text-blue-600">Who Can Benefit?</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm border-t-4 border-blue-500">
+                    <h4 class="text-lg font-semibold mb-3 flex items-center">
+                        <i class="fas fa-newspaper text-blue-500 mr-2"></i> Journalists
+                    </h4>
+                    <p class="text-gray-700">
+                        Ensure balanced reporting by identifying and adjusting unintentional biases in your articles before publication.
+                    </p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border-t-4 border-purple-500">
+                    <h4 class="text-lg font-semibold mb-3 flex items-center">
+                        <i class="fas fa-graduation-cap text-purple-500 mr-2"></i> Educators
+                    </h4>
+                    <p class="text-gray-700">
+                        Teach media literacy by showing students how to recognize different types of bias in various content sources.
+                    </p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border-t-4 border-green-500">
+                    <h4 class="text-lg font-semibold mb-3 flex items-center">
+                        <i class="fas fa-flask text-green-500 mr-2"></i> Researchers
+                    </h4>
+                    <p class="text-gray-700">
+                        Analyze bias patterns in large text corpora for social science, political science, or media studies research.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Page -->
+    <section id="how-it-works" class="fade-in py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-4">How BiasMapper Works</h2>
+            <p class="text-xl text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                Our three-step process makes bias analysis simple and actionable.
+            </p>
+            
+            <div class="relative">
+                <!-- Timeline line -->
+                <div class="hidden md:block absolute left-1/2 top-0 h-full w-1 bg-blue-100 transform -translate-x-1/2"></div>
+                
+                <!-- Step 1 -->
+                <div class="relative mb-16 md:flex items-center">
+                    <div class="md:w-1/2 md:pr-12 mb-6 md:mb-0">
+                        <div class="bg-blue-50 p-6 rounded-xl">
+                            <div class="flex items-center mb-4">
+                                <div class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg mr-4">1</div>
+                                <h3 class="text-xl font-semibold text-gray-900">Input Your Text</h3>
+                            </div>
+                            <p class="text-gray-700">
+                                Paste any text content into our analyzer - articles, essays, social media posts, or research papers. Our system processes content in multiple languages and various formats.
+                            </p>
                         </div>
-                        <div class="bg-green-50 p-4 rounded-lg">
-                            <i class="fas fa-landmark text-green-500 text-2xl mb-2"></i>
-                            <h4 class="font-medium text-green-800">Political Speeches</h4>
+                    </div>
+                    <div class="md:w-1/2">
+                        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <textarea class="w-full bg-transparent outline-none text-gray-700" rows="3" placeholder="Paste your text here..." readonly>The government's new economic policies favor large corporations over small businesses, according to critics who argue this will increase income inequality...</textarea>
+                            </div>
                         </div>
-                        <div class="bg-yellow-50 p-4 rounded-lg">
-                            <i class="fas fa-book text-yellow-500 text-2xl mb-2"></i>
-                            <h4 class="font-medium text-yellow-800">Academic Research</h4>
+                    </div>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="relative mb-16 md:flex items-center flex-row-reverse">
+                    <div class="md:w-1/2 md:pl-12 mb-6 md:mb-0">
+                        <div class="bg-purple-50 p-6 rounded-xl">
+                            <div class="flex items-center mb-4">
+                                <div class="bg-purple-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg mr-4">2</div>
+                                <h3 class="text-xl font-semibold text-gray-900">Bias Analysis</h3>
+                            </div>
+                            <p class="text-gray-700">
+                                Our advanced NLP models evaluate the text across multiple dimensions of bias, identifying ideological leanings, topical focus, and baseline assumptions.
+                            </p>
                         </div>
-                        <div class="bg-red-50 p-4 rounded-lg">
-                            <i class="fas fa-comments text-red-500 text-2xl mb-2"></i>
-                            <h4 class="font-medium text-red-800">Social Media</h4>
+                    </div>
+                    <div class="md:w-1/2">
+                        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-500">Ideological Bias</span>
+                                <span class="text-sm font-medium text-blue-600">L+ (Moderate Left)</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: 65%"></div>
+                            </div>
+                            
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-500">Societal Bias</span>
+                                <span class="text-sm font-medium text-purple-600">T+ (Moderate Topical)</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                                <div class="bg-purple-600 h-2.5 rounded-full" style="width: 45%"></div>
+                            </div>
+                            
+                            <div class="text-xs text-gray-500 italic">Confidence: 87%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 3 -->
+                <div class="relative md:flex items-center">
+                    <div class="md:w-1/2 md:pr-12 mb-6 md:mb-0">
+                        <div class="bg-green-50 p-6 rounded-xl">
+                            <div class="flex items-center mb-4">
+                                <div class="bg-green-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg mr-4">3</div>
+                                <h3 class="text-xl font-semibold text-gray-900">Get Results & Adjust</h3>
+                            </div>
+                            <p class="text-gray-700">
+                                Receive detailed bias analysis with visualizations and explanations. Optionally reframe the content to different bias perspectives or neutralize it.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2">
+                        <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                            <div class="flex space-x-3 mb-4">
+                                <button class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Original (L+)</button>
+                                <button class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">Reframe to C</button>
+                                <button class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">Reframe to R+</button>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg mb-3">
+                                <p class="text-gray-700 text-sm">
+                                    "The government's economic policies have different impacts across business sizes, with some analysts noting potential effects on income distribution..."
+                                </p>
+                            </div>
+                            <div class="text-xs text-gray-500 italic">Reframed to Centrist (C) perspective</div>
                         </div>
                     </div>
                 </div>
@@ -290,289 +490,376 @@
         </div>
     </section>
 
-    <!-- How It Works Section -->
-    <section id="how-it-works" class="py-20 bg-gray-50">
-        <div class="container mx-auto px-4">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">How BiasMapper Works</h2>
-                <div class="w-20 h-1 bg-blue-500 mx-auto"></div>
-            </div>
+    <!-- Interactive Tool Page -->
+    <section id="tool" class="fade-in py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-4">BiasMapper Tool</h2>
+            <p class="text-xl text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                Analyze your text content for biases and explore different perspectives.
+            </p>
             
-            <div class="max-w-4xl mx-auto">
-                <div class="flex flex-col md:flex-row gap-8 mb-12 fade-in">
-                    <div class="md:w-1/3 flex flex-col items-center text-center">
-                        <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">1</div>
-                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Input Content</h3>
-                        <p class="text-gray-600">Paste text from articles, speeches, or social media posts into our analyzer.</p>
-                    </div>
-                    <div class="md:w-1/3 flex flex-col items-center text-center">
-                        <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">2</div>
-                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Bias Detection</h3>
-                        <p class="text-gray-600">Our algorithm analyzes language patterns to detect dominant and secondary biases.</p>
-                    </div>
-                    <div class="md:w-1/3 flex flex-col items-center text-center">
-                        <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">3</div>
-                        <h3 class="text-xl font-semibold text-gray-800 mb-2">Visual Results</h3>
-                        <p class="text-gray-600">Receive a detailed report with visualizations showing bias distribution.</p>
-                    </div>
-                </div>
-                
-                <div class="bg-white p-8 rounded-xl shadow-md fade-in" style="animation-delay: 0.3s;">
-                    <h3 class="text-2xl font-semibold text-gray-800 mb-6">Example Analysis</h3>
-                    
-                    <div class="mb-8">
-                        <h4 class="text-lg font-medium text-gray-700 mb-3">Sample Input:</h4>
-                        <div class="bg-gray-100 p-4 rounded-lg">
-                            <p class="text-gray-700 italic">"The establishment continues to ignore the needs of working people while protecting corporate interests. We need radical change that puts power back in the hands of communities."</p>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-8">
-                        <h4 class="text-lg font-medium text-gray-700 mb-3">BiasMapper Results:</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="bg-blue-50 p-4 rounded-lg">
-                                <h5 class="font-medium text-blue-800 mb-2">Dominant Bias:</h5>
-                                <div class="flex items-center">
-                                    <div class="w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center font-bold text-blue-700 mr-3">L+</div>
-                                    <span class="text-gray-700">Left Progressive (Moderate)</span>
-                                </div>
-                            </div>
-                            <div class="bg-green-50 p-4 rounded-lg">
-                                <h5 class="font-medium text-green-800 mb-2">Secondary Bias:</h5>
-                                <div class="flex items-center">
-                                    <div class="w-8 h-8 bg-green-200 rounded-full flex items-center justify-center font-bold text-green-700 mr-3">B+</div>
-                                    <span class="text-gray-700">Bottom-up Advocacy (Moderate)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <div class="chart-axis horizontal-axis"></div>
-                        <div class="chart-axis vertical-axis"></div>
-                        <div class="chart-label left-label">Left (L)</div>
-                        <div class="chart-label right-label">Right (R)</div>
-                        <div class="chart-label top-label">Top-down (T)</div>
-                        <div class="chart-label bottom-label">Bottom-up (B)</div>
-                        <div class="chart-label center-label">Centrist (C)</div>
-                        
-                        <div class="bias-dot bg-blue-500" style="top: 60%; left: 30%;"></div>
-                        <div class="bias-dot bg-green-500" style="top: 70%; left: 50%;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Demo Section -->
-    <section id="demo" class="py-20 bg-white">
-        <div class="container mx-auto px-4">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">Try BiasMapper</h2>
-                <div class="w-20 h-1 bg-blue-500 mx-auto"></div>
-                <p class="text-gray-600 max-w-2xl mx-auto mt-4">Paste your text below to see BiasMapper in action. Try news articles, political speeches, or social media posts.</p>
-            </div>
-            
-            <div class="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
-                <div class="fade-in">
-                    <div class="bg-gray-50 p-6 rounded-xl shadow-sm">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Input Text</h3>
-                        <textarea id="input-text" class="w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Paste your text here..."></textarea>
-                        <div class="flex justify-between mt-4">
-                            <button id="analyze-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition">Analyze</button>
-                            <button id="sample-btn" class="text-blue-500 hover:text-blue-700 px-4 py-2 rounded-lg font-medium transition">Use Sample Text</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="fade-in" style="animation-delay: 0.3s;">
-                    <div class="bg-gray-50 p-6 rounded-xl shadow-sm h-full">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-4">Analysis Results</h3>
-                        <div id="results-container" class="h-64 flex items-center justify-center text-gray-400">
-                            <p>Results will appear here after analysis</p>
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                    <!-- Input Section -->
+                    <div class="p-6 border-r border-gray-200">
+                        <div class="mb-6">
+                            <label for="text-input" class="block text-sm font-medium text-gray-700 mb-2">Enter text to analyze</label>
+                            <textarea id="text-input" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" rows="10" placeholder="Paste your article, essay, or any text content here..."></textarea>
                         </div>
                         
-                        <div id="bias-results" class="hidden">
-                            <div class="mb-6">
-                                <h4 class="font-medium text-gray-700 mb-2">Dominant Bias:</h4>
-                                <div id="dominant-bias" class="flex items-center">
-                                    <!-- Filled by JavaScript -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Analysis Options</label>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <button id="detect-bias-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300">
+                                    Detect Bias
+                                </button>
+                                <div class="relative">
+                                    <select id="reframe-select" class="appearance-none w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-300 pr-8">
+                                        <option value="" disabled selected>Reframe To...</option>
+                                        <option value="L++">L++ (Strong Left)</option>
+                                        <option value="L+">L+ (Moderate Left)</option>
+                                        <option value="C">C (Centrist)</option>
+                                        <option value="R+">R+ (Moderate Right)</option>
+                                        <option value="R++">R++ (Strong Right)</option>
+                                        <option value="T++">T++ (Strong Topical)</option>
+                                        <option value="T+">T+ (Moderate Topical)</option>
+                                        <option value="B+">B+ (Moderate Baseline)</option>
+                                        <option value="B++">B++ (Strong Baseline)</option>
+                                    </select>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                </div>
+                                <button id="de-bias-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-300">
+                                    De-bias (Neutralize)
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <button id="huggingface-btn" class="flex items-center bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-medium py-2 px-4 rounded-lg transition duration-300">
+                                <i class="fab fa-hubspot mr-2"></i> Try Live Analysis
+                            </button>
+                            <div class="text-sm text-gray-500">
+                                <span id="word-count">0</span> words
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Output Section -->
+                    <div class="p-6 bg-gray-50">
+                        <div id="output-placeholder" class="h-full flex flex-col items-center justify-center text-center">
+                            <div class="bg-white p-6 rounded-xl shadow-sm max-w-md">
+                                <i class="fas fa-search text-gray-300 text-4xl mb-4"></i>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Analysis Yet</h3>
+                                <p class="text-gray-500 mb-4">Enter some text and click "Detect Bias" to see the results</p>
+                            </div>
+                        </div>
+                        
+                        <div id="analysis-results" class="hidden">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-semibold text-gray-900">Analysis Results</h3>
+                                <div class="flex items-center">
+                                    <span class="text-sm font-medium text-gray-500 mr-2">Confidence:</span>
+                                    <span id="confidence-score" class="text-sm font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">87%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <h4 class="text-sm font-medium text-gray-500 mb-2">Primary Bias</h4>
+                                    <div id="primary-bias" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium inline-block">L+ (Moderate Left)</div>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-medium text-gray-500 mb-2">Secondary Bias</h4>
+                                    <div id="secondary-bias" class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium inline-block">T+ (Moderate Topical)</div>
                                 </div>
                             </div>
                             
                             <div class="mb-6">
-                                <h4 class="font-medium text-gray-700 mb-2">Secondary Biases:</h4>
-                                <div id="secondary-biases" class="space-y-2">
-                                    <!-- Filled by JavaScript -->
+                                <h4 class="text-sm font-medium text-gray-500 mb-3">Bias Vector</h4>
+                                <div class="relative bg-white p-4 rounded-lg border border-gray-200">
+                                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-gray-400 rounded-full"></div>
+                                    <div id="bias-dot" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-blue-600 rounded-full shadow-md"></div>
+                                    <div class="absolute top-0 left-1/2 transform -translate-x-1/2 text-xs text-gray-500">T++</div>
+                                    <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs text-gray-500">B++</div>
+                                    <div class="absolute left-0 top-1/2 transform -translate-y-1/2 text-xs text-gray-500">L++</div>
+                                    <div class="absolute right-0 top-1/2 transform -translate-y-1/2 text-xs text-gray-500">R++</div>
                                 </div>
                             </div>
                             
-                            <div class="chart-container">
-                                <div class="chart-axis horizontal-axis"></div>
-                                <div class="chart-axis vertical-axis"></div>
-                                <div class="chart-label left-label">Left (L)</div>
-                                <div class="chart-label right-label">Right (R)</div>
-                                <div class="chart-label top-label">Top-down (T)</div>
-                                <div class="chart-label bottom-label">Bottom-up (B)</div>
-                                <div class="chart-label center-label">Centrist (C)</div>
-                                
-                                <div id="result-dots">
-                                    <!-- Filled by JavaScript -->
+                            <div class="mb-6">
+                                <h4 class="text-sm font-medium text-gray-500 mb-2">Bias Intensity</h4>
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-sm font-medium text-blue-600">Ideological (L/R)</span>
+                                            <span id="ideological-score" class="text-sm font-medium text-gray-900">0.65</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div id="ideological-bar" class="bg-blue-600 h-2 rounded-full" style="width: 65%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span class="text-sm font-medium text-purple-600">Societal (T/B)</span>
+                                            <span id="societal-score" class="text-sm font-medium text-gray-900">0.45</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div id="societal-bar" class="bg-purple-600 h-2 rounded-full" style="width: 45%"></div>
+                                        </div>
+                                    </div>
                                 </div>
+                            </div>
+                            
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-500 mb-2">Key Biased Phrases</h4>
+                                <div id="biased-phrases" class="space-y-2">
+                                    <div class="flex items-start">
+                                        <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded mr-2">L+</span>
+                                        <span class="text-sm text-gray-700">"favor large corporations over small businesses"</span>
+                                    </div>
+                                    <div class="flex items-start">
+                                        <span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded mr-2">T+</span>
+                                        <span class="text-sm text-gray-700">"increase income inequality" (economic focus)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="loading-indicator" class="hidden h-full flex flex-col items-center justify-center">
+                            <div class="loading-dots mb-4">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <p class="text-gray-600">Analyzing text for biases...</p>
+                        </div>
+                        
+                        <div id="reframed-output" class="hidden">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-semibold text-gray-900">Reframed Content</h3>
+                                <div id="target-bias" class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">C (Centrist)</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+                                <p id="reframed-text" class="text-gray-700"></p>
+                            </div>
+                            <div class="flex justify-end">
+                                <button id="copy-reframed" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center">
+                                    <i class="fas fa-copy mr-2"></i> Copy Text
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
-
-    <!-- Resources Section -->
-    <section id="resources" class="py-20 bg-gray-50">
-        <div class="container mx-auto px-4">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">Resources</h2>
-                <div class="w-20 h-1 bg-blue-500 mx-auto"></div>
-                <p class="text-gray-600 max-w-2xl mx-auto mt-4">Learn more about bias analysis and how to use the BiasMapper framework.</p>
-            </div>
             
-            <div class="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
-                <div class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition fade-in">
-                    <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center text-blue-500 mb-4">
-                        <i class="fas fa-file-pdf text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">BiasMapper Guide</h3>
-                    <p class="text-gray-600 mb-4">Comprehensive PDF explaining the BiasMapper framework and methodology.</p>
-                    <a href="#" class="text-blue-500 hover:text-blue-700 font-medium inline-flex items-center">
-                        Download <i class="fas fa-arrow-down ml-2"></i>
-                    </a>
+            <div class="mt-12 bg-white p-6 rounded-xl shadow-sm">
+                <h3 class="text-xl font-semibold mb-4 text-gray-900">Example Analyses</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <button class="example-btn bg-gray-50 hover:bg-gray-100 p-4 rounded-lg border border-gray-200 text-left transition duration-300">
+                        <h4 class="font-medium text-blue-600 mb-2">Political News</h4>
+                        <p class="text-sm text-gray-600">"The administration's healthcare proposal would leave millions without coverage, critics argue..."</p>
+                    </button>
+                    <button class="example-btn bg-gray-50 hover:bg-gray-100 p-4 rounded-lg border border-gray-200 text-left transition duration-300">
+                        <h4 class="font-medium text-purple-600 mb-2">Social Media Post</h4>
+                        <p class="text-sm text-gray-600">"This new technology will obviously destroy jobs and increase corporate profits - typical capitalist greed!"</p>
+                    </button>
+                    <button class="example-btn bg-gray-50 hover:bg-gray-100 p-4 rounded-lg border border-gray-200 text-left transition duration-300">
+                        <h4 class="font-medium text-green-600 mb-2">Academic Abstract</h4>
+                        <p class="text-sm text-gray-600">"Our findings suggest traditional gender roles continue to influence career choices significantly..."</p>
+                    </button>
                 </div>
-                
-                <div class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition fade-in" style="animation-delay: 0.2s;">
-                    <div class="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center text-green-500 mb-4">
-                        <i class="fas fa-question-circle text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">FAQs</h3>
-                    <p class="text-gray-600 mb-4">Answers to common questions about bias analysis and using BiasMapper.</p>
-                    <a href="#" class="text-blue-500 hover:text-blue-700 font-medium inline-flex items-center">
-                        View FAQs <i class="fas fa-arrow-right ml-2"></i>
-                    </a>
-                </div>
-                
-                <div class="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition fade-in" style="animation-delay: 0.4s;">
-                    <div class="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center text-purple-500 mb-4">
-                        <i class="fas fa-book-open text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Case Studies</h3>
-                    <p class="text-gray-600 mb-4">Real-world examples of BiasMapper applied to news, politics, and social media.</p>
-                    <a href="#" class="text-blue-500 hover:text-blue-700 font-medium inline-flex items-center">
-                        Read Cases <i class="fas fa-arrow-right ml-2"></i>
-                    </a>
-                </div>
-            </div>
-            
-            <div class="max-w-3xl mx-auto mt-16 bg-white p-8 rounded-xl shadow-md fade-in">
-                <h3 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Subscribe for Updates</h3>
-                <p class="text-gray-600 mb-6 text-center">Stay informed about new features, research, and applications of BiasMapper.</p>
-                
-                <form class="flex flex-col sm:flex-row gap-4">
-                    <input type="email" placeholder="Your email address" class="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition whitespace-nowrap">Subscribe</button>
-                </form>
-                
-                <p class="text-sm text-gray-500 mt-3 text-center">We respect your privacy. Unsubscribe at any time.</p>
             </div>
         </div>
     </section>
 
-    <!-- Contact Section -->
-    <section id="contact" class="py-20 bg-white">
-        <div class="container mx-auto px-4">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">Contact Us</h2>
-                <div class="w-20 h-1 bg-blue-500 mx-auto"></div>
-                <p class="text-gray-600 max-w-2xl mx-auto mt-4">Have questions or feedback? We'd love to hear from you.</p>
+    <!-- Resources Page -->
+    <section id="resources" class="fade-in py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-4">Resources</h2>
+            <p class="text-xl text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                Learn more about bias analysis and our framework.
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                <div class="bg-gray-50 p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-file-pdf text-blue-500 mr-3"></i> Understanding Directional Biases
+                    </h3>
+                    <p class="text-gray-700 mb-4">
+                        Download our comprehensive guide to the BiasMapper framework, including detailed explanations of each bias type and practical examples.
+                    </p>
+                    <a href="#" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
+                        Download PDF
+                        <i class="fas fa-download ml-2"></i>
+                    </a>
+                </div>
+                
+                <div class="bg-gray-50 p-6 rounded-xl shadow-sm border-l-4 border-purple-500">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fas fa-book-open text-purple-500 mr-3"></i> Research & Case Studies
+                    </h3>
+                    <p class="text-gray-700 mb-4">
+                        Explore academic research and real-world applications of our bias analysis framework across different domains.
+                    </p>
+                    <div class="space-y-2">
+                        <a href="#" class="block text-purple-600 hover:text-purple-800 text-sm">Media Bias in Major News Outlets (2023)</a>
+                        <a href="#" class="block text-purple-600 hover:text-purple-800 text-sm">Educational Materials Bias Analysis</a>
+                        <a href="#" class="block text-purple-600 hover:text-purple-800 text-sm">Political Speech Patterns Study</a>
+                    </div>
+                </div>
             </div>
             
-            <div class="max-w-4xl mx-auto grid md:grid-cols-2 gap-12">
-                <div class="fade-in">
-                    <form class="space-y-6">
-                        <div>
-                            <label for="name" class="block text-gray-700 font-medium mb-2">Name</label>
-                            <input type="text" id="name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <div class="bg-gray-50 p-6 rounded-xl shadow-sm">
+                <h3 class="text-xl font-semibold mb-6 text-center">Frequently Asked Questions</h3>
+                
+                <div class="space-y-4 max-w-3xl mx-auto">
+                    <div class="faq-item border-b border-gray-200 pb-4">
+                        <button class="faq-question flex justify-between items-center w-full text-left font-medium text-gray-900 hover:text-blue-600 focus:outline-none">
+                            <span>How accurate is BiasMapper's analysis?</span>
+                            <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer mt-2 text-gray-700 hidden">
+                            BiasMapper achieves approximately 85-90% accuracy in identifying primary biases based on our validation studies. The confidence score provided with each analysis indicates our model's certainty about the results. For best accuracy, we recommend analyzing texts of at least 200 words.
                         </div>
-                        
-                        <div>
-                            <label for="email" class="block text-gray-700 font-medium mb-2">Email</label>
-                            <input type="email" id="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div class="faq-item border-b border-gray-200 pb-4">
+                        <button class="faq-question flex justify-between items-center w-full text-left font-medium text-gray-900 hover:text-blue-600 focus:outline-none">
+                            <span>Can BiasMapper analyze non-English text?</span>
+                            <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer mt-2 text-gray-700 hidden">
+                            Currently, BiasMapper works best with English text. We're actively developing models for Spanish, French, and German, with plans to expand to more languages in the future. Some bias detection features may work with other languages, but accuracy will be lower.
                         </div>
-                        
-                        <div>
-                            <label for="subject" class="block text-gray-700 font-medium mb-2">Subject</label>
-                            <input type="text" id="subject" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div class="faq-item border-b border-gray-200 pb-4">
+                        <button class="faq-question flex justify-between items-center w-full text-left font-medium text-gray-900 hover:text-blue-600 focus:outline-none">
+                            <span>How does the reframing feature work?</span>
+                            <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer mt-2 text-gray-700 hidden">
+                            Our reframing algorithm identifies biased phrases and replaces them with alternative expressions that convey similar information but from different perspectives. The process maintains factual accuracy while adjusting tone, emphasis, and framing. For best results, review reframed content to ensure it meets your needs.
                         </div>
-                        
-                        <div>
-                            <label for="message" class="block text-gray-700 font-medium mb-2">Message</label>
-                            <textarea id="message" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+                    
+                    <div class="faq-item border-b border-gray-200 pb-4">
+                        <button class="faq-question flex justify-between items-center w-full text-left font-medium text-gray-900 hover:text-blue-600 focus:outline-none">
+                            <span>Is my data stored when I use the tool?</span>
+                            <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer mt-2 text-gray-700 hidden">
+                            We prioritize user privacy. Text analyzed in the free tool is processed in memory and not permanently stored. For API users and enterprise customers, we offer data retention options to suit different privacy requirements. See our Privacy Policy for full details.
                         </div>
-                        
-                        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition w-full">Send Message</button>
+                    </div>
+                    
+                    <div class="faq-item pb-4">
+                        <button class="faq-question flex justify-between items-center w-full text-left font-medium text-gray-900 hover:text-blue-600 focus:outline-none">
+                            <span>How can I integrate BiasMapper into my workflow?</span>
+                            <i class="fas fa-chevron-down text-gray-500 transition-transform duration-300"></i>
+                        </button>
+                        <div class="faq-answer mt-2 text-gray-700 hidden">
+                            We offer several integration options: a web interface (this tool), a REST API for developers, and browser extensions for Chrome and Firefox. Enterprise customers can access custom integrations with CMS platforms like WordPress and publishing tools. Contact us for more information about API access and enterprise solutions.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Page -->
+    <section id="contact" class="fade-in py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-4">Contact Us</h2>
+            <p class="text-xl text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                Have questions or feedback? We'd love to hear from you.
+            </p>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <h3 class="text-xl font-semibold mb-6">Send us a message</h3>
+                    <form id="contact-form" class="space-y-6">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input type="text" id="name" name="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+                        </div>
+                        <div>
+                            <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                            <select id="subject" name="subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                <option value="general">General Inquiry</option>
+                                <option value="technical">Technical Support</option>
+                                <option value="api">API Access</option>
+                                <option value="enterprise">Enterprise Solutions</option>
+                                <option value="feedback">Feedback</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                            <textarea id="message" name="message" rows="5" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required></textarea>
+                        </div>
+                        <div>
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
+                                Send Message
+                            </button>
+                        </div>
                     </form>
                 </div>
                 
-                <div class="fade-in" style="animation-delay: 0.3s;">
-                    <div class="bg-gray-50 p-8 rounded-xl h-full">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-6">Other Ways to Connect</h3>
-                        
-                        <div class="space-y-6">
+                <div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm mb-8">
+                        <h3 class="text-xl font-semibold mb-6">Contact Information</h3>
+                        <div class="space-y-4">
                             <div class="flex items-start">
-                                <div class="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-500 mr-4 mt-1">
-                                    <i class="fas fa-envelope"></i>
+                                <div class="bg-blue-100 p-2 rounded-full mr-4">
+                                    <i class="fas fa-envelope text-blue-600"></i>
                                 </div>
                                 <div>
-                                    <h4 class="font-medium text-gray-800">Email</h4>
-                                    <p class="text-gray-600">contact@biasmapper.com</p>
+                                    <h4 class="font-medium text-gray-900">Email</h4>
+                                    <a href="mailto:contact@biasmapper.com" class="text-blue-600 hover:text-blue-800">contact@biasmapper.com</a>
                                 </div>
                             </div>
-                            
                             <div class="flex items-start">
-                                <div class="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center text-green-500 mr-4 mt-1">
-                                    <i class="fas fa-phone-alt"></i>
+                                <div class="bg-purple-100 p-2 rounded-full mr-4">
+                                    <i class="fas fa-map-marker-alt text-purple-600"></i>
                                 </div>
                                 <div>
-                                    <h4 class="font-medium text-gray-800">Phone</h4>
-                                    <p class="text-gray-600">+1 (555) 123-4567</p>
+                                    <h4 class="font-medium text-gray-900">Location</h4>
+                                    <p class="text-gray-700">1234 Research Park, Suite 200<br>San Francisco, CA 94107</p>
                                 </div>
                             </div>
-                            
                             <div class="flex items-start">
-                                <div class="bg-purple-100 w-10 h-10 rounded-full flex items-center justify-center text-purple-500 mr-4 mt-1">
-                                    <i class="fas fa-map-marker-alt"></i>
+                                <div class="bg-green-100 p-2 rounded-full mr-4">
+                                    <i class="fas fa-clock text-green-600"></i>
                                 </div>
                                 <div>
-                                    <h4 class="font-medium text-gray-800">Address</h4>
-                                    <p class="text-gray-600">123 Analysis St, Suite 101<br>San Francisco, CA 94107</p>
+                                    <h4 class="font-medium text-gray-900">Hours</h4>
+                                    <p class="text-gray-700">Monday - Friday: 9am - 5pm PST<br>Weekends: Closed</p>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="mt-8">
-                            <h4 class="font-medium text-gray-800 mb-4">Follow Us</h4>
-                            <div class="flex space-x-4">
-                                <a href="#" class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-500 hover:bg-blue-200 transition">
-                                    <i class="fab fa-twitter"></i>
-                                </a>
-                                <a href="#" class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition">
-                                    <i class="fab fa-linkedin-in"></i>
-                                </a>
-                                <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-white hover:bg-gray-700 transition">
-                                    <i class="fab fa-github"></i>
-                                </a>
-                                <a href="#" class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition">
-                                    <i class="fab fa-youtube"></i>
-                                </a>
-                            </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-sm">
+                        <h3 class="text-xl font-semibold mb-6">Connect With Us</h3>
+                        <div class="flex space-x-4">
+                            <a href="#" class="bg-gray-100 hover:bg-gray-200 w-10 h-10 rounded-full flex items-center justify-center text-gray-700">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                            <a href="#" class="bg-gray-100 hover:bg-gray-200 w-10 h-10 rounded-full flex items-center justify-center text-gray-700">
+                                <i class="fab fa-linkedin-in"></i>
+                            </a>
+                            <a href="#" class="bg-gray-100 hover:bg-gray-200 w-10 h-10 rounded-full flex items-center justify-center text-gray-700">
+                                <i class="fab fa-github"></i>
+                            </a>
+                            <a href="#" class="bg-gray-100 hover:bg-gray-200 w-10 h-10 rounded-full flex items-center justify-center text-gray-700">
+                                <i class="fab fa-medium"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -581,58 +868,56 @@
     </section>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-12">
-        <div class="container mx-auto px-4">
-            <div class="grid md:grid-cols-4 gap-8 mb-8">
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div>
-                    <div class="flex items-center space-x-2 mb-4">
-                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">BM</div>
-                        <span class="text-xl font-bold">BiasMapper</span>
-                    </div>
-                    <p class="text-gray-400">Fair and balanced analysis across perspectives.</p>
+                    <h3 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fas fa-balance-scale-left text-blue-400 mr-2"></i> BiasMapper
+                    </h3>
+                    <p class="text-gray-400 text-sm">
+                        Fair and balanced analysis across perspectives. Our tools help identify and understand biases in text content.
+                    </p>
                 </div>
-                
                 <div>
-                    <h4 class="text-lg font-semibold mb-4">Navigation</h4>
+                    <h3 class="text-lg font-semibold mb-4">Product</h3>
                     <ul class="space-y-2">
-                        <li><a href="#home" class="text-gray-400 hover:text-white transition">Home</a></li>
-                        <li><a href="#about" class="text-gray-400 hover:text-white transition">About</a></li>
-                        <li><a href="#how-it-works" class="text-gray-400 hover:text-white transition">How It Works</a></li>
-                        <li><a href="#demo" class="text-gray-400 hover:text-white transition">Demo</a></li>
-                        <li><a href="#resources" class="text-gray-400 hover:text-white transition">Resources</a></li>
+                        <li><a href="#tool" class="text-gray-400 hover:text-white text-sm">Interactive Tool</a></li>
+                        <li><a href="#how-it-works" class="text-gray-400 hover:text-white text-sm">How It Works</a></li>
+                        <li><a href="#resources" class="text-gray-400 hover:text-white text-sm">Resources</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white text-sm">API Access</a></li>
                     </ul>
                 </div>
-                
                 <div>
-                    <h4 class="text-lg font-semibold mb-4">Resources</h4>
+                    <h3 class="text-lg font-semibold mb-4">Company</h3>
                     <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Documentation</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">API</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Case Studies</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Research Papers</a></li>
+                        <li><a href="#about" class="text-gray-400 hover:text-white text-sm">About Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white text-sm">Blog</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white text-sm">Careers</a></li>
+                        <li><a href="#contact" class="text-gray-400 hover:text-white text-sm">Contact</a></li>
                     </ul>
                 </div>
-                
                 <div>
-                    <h4 class="text-lg font-semibold mb-4">Legal</h4>
+                    <h3 class="text-lg font-semibold mb-4">Legal</h3>
                     <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Privacy Policy</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Terms of Service</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Cookie Policy</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white text-sm">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white text-sm">Terms of Service</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white text-sm">Cookie Policy</a></li>
                     </ul>
                 </div>
             </div>
-            
-            <div class="pt-6 border-t border-gray-700 flex flex-col md:flex-row justify-between items-center">
-                <p class="text-gray-400 mb-4 md:mb-0">© 2023 BiasMapper. All rights reserved.</p>
+            <div class="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 text-sm mb-4 md:mb-0">
+                    &copy; 2023 BiasMapper. All rights reserved.
+                </p>
                 <div class="flex space-x-6">
-                    <a href="#" class="text-gray-400 hover:text-white transition">
+                    <a href="#" class="text-gray-400 hover:text-white">
                         <i class="fab fa-twitter"></i>
                     </a>
-                    <a href="#" class="text-gray-400 hover:text-white transition">
+                    <a href="#" class="text-gray-400 hover:text-white">
                         <i class="fab fa-linkedin-in"></i>
                     </a>
-                    <a href="#" class="text-gray-400 hover:text-white transition">
+                    <a href="#" class="text-gray-400 hover:text-white">
                         <i class="fab fa-github"></i>
                     </a>
                 </div>
@@ -647,115 +932,13 @@
             menu.classList.toggle('hidden');
         });
 
-        // Sample bias analysis data
-        const sampleAnalyses = [
-            {
-                text: "The corporate elite continues to exploit workers while avoiding taxes. We need systemic change that prioritizes people over profits and ensures fair wealth distribution.",
-                dominant: { bias: "L+", color: "bg-blue-200", textColor: "text-blue-700", name: "Left Progressive" },
-                secondary: [
-                    { bias: "B+", color: "bg-green-200", textColor: "text-green-700", name: "Bottom-up Advocacy" }
-                ],
-                dots: [
-                    { top: 60, left: 30, color: "bg-blue-500" },
-                    { top: 70, left: 50, color: "bg-green-500" }
-                ]
-            },
-            {
-                text: "Traditional family values are under attack from radical ideologies. We must preserve our cultural heritage and protect children from harmful influences in schools and media.",
-                dominant: { bias: "T+", color: "bg-red-200", textColor: "text-red-700", name: "Traditional Conservative" },
-                secondary: [
-                    { bias: "R", color: "bg-purple-200", textColor: "text-purple-700", name: "Right-leaning" }
-                ],
-                dots: [
-                    { top: 40, left: 60, color: "bg-red-500" },
-                    { top: 50, left: 60, color: "bg-purple-500" }
-                ]
-            },
-            {
-                text: "A balanced approach considers all perspectives. While we must address economic inequality, we should also ensure policies don't stifle innovation or business growth.",
-                dominant: { bias: "C", color: "bg-gray-200", textColor: "text-gray-700", name: "Centrist" },
-                secondary: [
-                    { bias: "L", color: "bg-blue-100", textColor: "text-blue-600", name: "Mild Left" },
-                    { bias: "R", color: "bg-purple-100", textColor: "text-purple-600", name: "Mild Right" }
-                ],
-                dots: [
-                    { top: 50, left: 50, color: "bg-gray-500" },
-                    { top: 55, left: 45, color: "bg-blue-400" },
-                    { top: 55, left: 55, color: "bg-purple-400" }
-                ]
-            }
-        ];
-
-        // Demo functionality
-        document.getElementById('sample-btn').addEventListener('click', function() {
-            const randomSample = sampleAnalyses[Math.floor(Math.random() * sampleAnalyses.length)];
-            document.getElementById('input-text').value = randomSample.text;
-            analyzeText(randomSample);
-        });
-
-        document.getElementById('analyze-btn').addEventListener('click', function() {
-            const inputText = document.getElementById('input-text').value.trim();
-            if (inputText) {
-                // In a real app, this would call an API for analysis
-                // For demo purposes, we'll use a random sample analysis
-                const randomSample = sampleAnalyses[Math.floor(Math.random() * sampleAnalyses.length)];
-                analyzeText(randomSample);
-            } else {
-                alert("Please enter some text to analyze.");
-            }
-        });
-
-        function analyzeText(analysis) {
-            const resultsContainer = document.getElementById('results-container');
-            const biasResults = document.getElementById('bias-results');
-            const dominantBias = document.getElementById('dominant-bias');
-            const secondaryBiases = document.getElementById('secondary-biases');
-            const resultDots = document.getElementById('result-dots');
-            
-            // Show loading state
-            resultsContainer.innerHTML = '<p>Analyzing content...</p>';
-            biasResults.classList.add('hidden');
-            
-            // Simulate analysis delay
-            setTimeout(() => {
-                // Populate dominant bias
-                dominantBias.innerHTML = `
-                    <div class="w-10 h-10 ${analysis.dominant.color} rounded-full flex items-center justify-center font-bold ${analysis.dominant.textColor} mr-3">${analysis.dominant.bias}</div>
-                    <span class="text-gray-700">${analysis.dominant.name}</span>
-                `;
-                
-                // Populate secondary biases
-                secondaryBiases.innerHTML = '';
-                analysis.secondary.forEach(bias => {
-                    const biasElement = document.createElement('div');
-                    biasElement.className = 'flex items-center';
-                    biasElement.innerHTML = `
-                        <div class="w-8 h-8 ${bias.color} rounded-full flex items-center justify-center font-bold ${bias.textColor} mr-3">${bias.bias}</div>
-                        <span class="text-gray-700">${bias.name}</span>
-                    `;
-                    secondaryBiases.appendChild(biasElement);
-                });
-                
-                // Populate chart dots
-                resultDots.innerHTML = '';
-                analysis.dots.forEach(dot => {
-                    const dotElement = document.createElement('div');
-                    dotElement.className = `bias-dot ${dot.color}`;
-                    dotElement.style.top = `${dot.top}%`;
-                    dotElement.style.left = `${dot.left}%`;
-                    resultDots.appendChild(dotElement);
-                });
-                
-                // Show results
-                resultsContainer.classList.add('hidden');
-                biasResults.classList.remove('hidden');
-            }, 1500);
-        }
-
         // Smooth scrolling for navigation links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function(e) {
                 e.preventDefault();
+                
+                // Close mobile menu if open
+                document.getElementById('mobile-menu').classList.add('hidden');
                 
                 const targetId = this.getAttribute('href');
                 const targetElement = document.querySelector(targetId);
@@ -766,33 +949,311 @@
                         behavior: 'smooth'
                     });
                     
-                    // Close mobile menu if open
-                    const mobileMenu = document.getElementById('mobile-menu');
-                    if (!mobileMenu.classList.contains('hidden')) {
-                        mobileMenu.classList.add('hidden');
+                    // Update active nav link
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('text-blue-600', 'border-blue-500');
+                        link.classList.add('hover:text-gray-900', 'hover:border-gray-300', 'border-transparent');
+                    });
+                    
+                    if (targetId !== '#home') {
+                        this.classList.add('text-blue-600', 'border-blue-500');
+                        this.classList.remove('hover:text-gray-900', 'hover:border-gray-300', 'border-transparent');
                     }
                 }
             });
         });
 
-        // Intersection Observer for fade-in animations
-        const fadeElements = document.querySelectorAll('.fade-in');
-        
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = 1;
-                    entry.target.style.transform = 'translateY(0)';
+        // Update active nav link on scroll
+        window.addEventListener('scroll', function() {
+            const scrollPosition = window.scrollY;
+            
+            document.querySelectorAll('section').forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                const sectionBottom = sectionTop + section.offsetHeight;
+                const sectionId = section.getAttribute('id');
+                
+                if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('text-blue-600', 'border-blue-500');
+                        link.classList.add('hover:text-gray-900', 'hover:border-gray-300', 'border-transparent');
+                    });
+                    
+                    if (sectionId !== 'home') {
+                        const correspondingLink = document.querySelector(`.nav-link[href="#${sectionId}"]`);
+                        if (correspondingLink) {
+                            correspondingLink.classList.add('text-blue-600', 'border-blue-500');
+                            correspondingLink.classList.remove('hover:text-gray-900', 'hover:border-gray-300', 'border-transparent');
+                        }
+                    }
                 }
             });
-        }, { threshold: 0.1 });
-        
-        fadeElements.forEach(element => {
-            element.style.opacity = 0;
-            element.style.transform = 'translateY(20px)';
-            element.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-            observer.observe(element);
         });
-    </script>
-</body>
+
+        // FAQ accordion functionality
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', function() {
+                const answer = this.nextElementSibling;
+                const icon = this.querySelector('i');
+                
+                // Toggle answer visibility
+                answer.classList.toggle('hidden');
+                
+                // Rotate icon
+                if (answer.classList.contains('hidden')) {
+                    icon.classList.remove('transform', 'rotate-180');
+                } else {
+                    icon.classList.add('transform', 'rotate-180');
+                }
+            });
+        });
+
+        // Interactive Tool Functionality
+        const textInput = document.getElementById('text-input');
+        const wordCount = document.getElementById('word-count');
+        
+        // Update word count
+        textInput.addEventListener('input', function() {
+            const text = this.value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            wordCount.textContent = words;
+        });
+        
+        // Detect Bias Button
+        document.getElementById('detect-bias-btn').addEventListener('click', function() {
+            const text = textInput.value.trim();
+            
+            if (!text) {
+                alert('Please enter some text to analyze.');
+                return;
+            }
+            
+            // Show loading indicator
+            document.getElementById('output-placeholder').classList.add('hidden');
+            document.getElementById('loading-indicator').classList.remove('hidden');
+            document.getElementById('analysis-results').classList.add('hidden');
+            document.getElementById('reframed-output').classList.add('hidden');
+            
+            // Simulate analysis (in a real app, this would be an API call)
+            setTimeout(() => {
+                document.getElementById('loading-indicator').classList.add('hidden');
+                document.getElementById('analysis-results').classList.remove('hidden');
+                
+                // Update bias dot position (random for demo)
+                const biasDot = document.getElementById('bias-dot');
+                const randomX = 30 + Math.random() * 40;
+                const randomY = 30 + Math.random() * 40;
+                biasDot.style.left = `${randomX}%`;
+                biasDot.style.top = `${randomY}%`;
+                
+                // Update scores (random for demo)
+                const ideologicalScore = (Math.random() * 0.7 + 0.15).toFixed(2);
+                const societalScore = (Math.random() * 0.7 + 0.15).toFixed(2);
+                const confidenceScore = Math.floor(Math.random() * 20 + 80);
+                
+                document.getElementById('ideological-score').textContent = ideologicalScore;
+                document.getElementById('societal-score').textContent = societalScore;
+                document.getElementById('confidence-score').textContent = `${confidenceScore}%`;
+                
+                document.getElementById('ideological-bar').style.width = `${ideologicalScore * 100}%`;
+                document.getElementById('societal-bar').style.width = `${societalScore * 100}%`;
+                
+                // Set random primary and secondary biases for demo
+                const biases = ['L++', 'L+', 'C', 'R+', 'R++', 'T++', 'T+', 'B+', 'B++'];
+                const primaryBias = biases[Math.floor(Math.random() * biases.length)];
+                let secondaryBias = biases[Math.floor(Math.random() * biases.length)];
+                
+                // Ensure secondary is different from primary
+                while (secondaryBias === primaryBias) {
+                    secondaryBias = biases[Math.floor(Math.random() * biases.length)];
+                }
+                
+                document.getElementById('primary-bias').textContent = primaryBias;
+                document.getElementById('secondary-bias').textContent = secondaryBias;
+                
+                // Update bias colors based on type
+                const primaryBiasElement = document.getElementById('primary-bias');
+                const secondaryBiasElement = document.getElementById('secondary-bias');
+                
+                // Reset classes
+                primaryBiasElement.className = 'px-3 py-1 rounded-full text-sm font-medium inline-block';
+                secondaryBiasElement.className = 'px-3 py-1 rounded-full text-sm font-medium inline-block';
+                
+                // Add appropriate color classes
+                if (primaryBias.startsWith('L')) {
+                    if (primaryBias === 'L++') {
+                        primaryBiasElement.classList.add('bg-blue-100', 'text-blue-800');
+                    } else {
+                        primaryBiasElement.classList.add('bg-blue-50', 'text-blue-600');
+                    }
+                } else if (primaryBias.startsWith('R')) {
+                    if (primaryBias === 'R++') {
+                        primaryBiasElement.classList.add('bg-purple-100', 'text-purple-800');
+                    } else {
+                        primaryBiasElement.classList.add('bg-purple-50', 'text-purple-600');
+                    }
+                } else if (primaryBias.startsWith('T')) {
+                    if (primaryBias === 'T++') {
+                        primaryBiasElement.classList.add('bg-red-100', 'text-red-800');
+                    } else {
+                        primaryBiasElement.classList.add('bg-red-50', 'text-red-600');
+                    }
+                } else if (primaryBias.startsWith('B')) {
+                    if (primaryBias === 'B++') {
+                        primaryBiasElement.classList.add('bg-green-100', 'text-green-800');
+                    } else {
+                        primaryBiasElement.classList.add('bg-green-50', 'text-green-600');
+                    }
+                } else {
+                    primaryBiasElement.classList.add('bg-gray-100', 'text-gray-800');
+                }
+                
+                // Same for secondary
+                if (secondaryBias.startsWith('L')) {
+                    if (secondaryBias === 'L++') {
+                        secondaryBiasElement.classList.add('bg-blue-100', 'text-blue-800');
+                    } else {
+                        secondaryBiasElement.classList.add('bg-blue-50', 'text-blue-600');
+                    }
+                } else if (secondaryBias.startsWith('R')) {
+                    if (secondaryBias === 'R++') {
+                        secondaryBiasElement.classList.add('bg-purple-100', 'text-purple-800');
+                    } else {
+                        secondaryBiasElement.classList.add('bg-purple-50', 'text-purple-600');
+                    }
+                } else if (secondaryBias.startsWith('T')) {
+                    if (secondaryBias === 'T++') {
+                        secondaryBiasElement.classList.add('bg-red-100', 'text-red-800');
+                    } else {
+                        secondaryBiasElement.classList.add('bg-red-50', 'text-red-600');
+                    }
+                } else if (secondaryBias.startsWith('B')) {
+                    if (secondaryBias === 'B++') {
+                        secondaryBiasElement.classList.add('bg-green-100', 'text-green-800');
+                    } else {
+                        secondaryBiasElement.classList.add('bg-green-50', 'text-green-600');
+                    }
+                } else {
+                    secondaryBiasElement.classList.add('bg-gray-100', 'text-gray-800');
+                }
+                
+                // Update biased phrases
+                const biasedPhrasesContainer = document.getElementById('biased-phrases');
+                biasedPhrasesContainer.innerHTML = '';
+                
+                // Add some example phrases
+                const examplePhrases = [
+                    { bias: primaryBias, text: `"${text.split(' ').slice(0, 5).join(' ')}..."` },
+                    { bias: secondaryBias, text: `"${text.split(' ').slice(5, 10).join(' ')}" (${secondaryBias.startsWith('T') ? 'topical focus' : 'baseline assumption'})` }
+                ];
+                
+                examplePhrases.forEach(phrase => {
+                    const phraseElement = document.createElement('div');
+                    phraseElement.className = 'flex items-start';
+                    
+                    const biasLabel = document.createElement('span');
+                    biasLabel.className = 'text-xs px-2 py-1 rounded mr-2';
+                    
+                    if (phrase.bias.startsWith('L')) {
+                        if (phrase.bias === 'L++') {
+                            biasLabel.classList.add('bg-blue-100', 'text-blue-800');
+                        } else {
+                            biasLabel.classList.add('bg-blue-50', 'text-blue-600');
+                        }
+                    } else if (phrase.bias.startsWith('R')) {
+                        if (phrase.bias === 'R++') {
+                            biasLabel.classList.add('bg-purple-100', 'text-purple-800');
+                        } else {
+                            biasLabel.classList.add('bg-purple-50', 'text-purple-600');
+                        }
+                    } else if (phrase.bias.startsWith('T')) {
+                        if (phrase.bias === 'T++') {
+                            biasLabel.classList.add('bg-red-100', 'text-red-800');
+                        } else {
+                            biasLabel.classList.add('bg-red-50', 'text-red-600');
+                        }
+                    } else if (phrase.bias.startsWith('B')) {
+                        if (phrase.bias === 'B++') {
+                            biasLabel.classList.add('bg-green-100', 'text-green-800');
+                        } else {
+                            biasLabel.classList.add('bg-green-50', 'text-green-600');
+                        }
+                    } else {
+                        biasLabel.classList.add('bg-gray-100', 'text-gray-800');
+                    }
+                    
+                    biasLabel.textContent = phrase.bias;
+                    
+                    const phraseText = document.createElement('span');
+                    phraseText.className = 'text-sm text-gray-700';
+                    phraseText.textContent = phrase.text;
+                    
+                    phraseElement.appendChild(biasLabel);
+                    phraseElement.appendChild(phraseText);
+                    biasedPhrasesContainer.appendChild(phraseElement);
+                });
+            }, 1500);
+        });
+        
+        // Reframe Button
+        document.getElementById('reframe-select').addEventListener('change', function() {
+            const targetBias = this.value;
+            const text = textInput.value.trim();
+            
+            if (!text) {
+                alert('Please enter some text to reframe.');
+                this.value = '';
+                return;
+            }
+            
+            if (!targetBias) return;
+            
+            // Show loading indicator
+            document.getElementById('output-placeholder').classList.add('hidden');
+            document.getElementById('loading-indicator').classList.remove('hidden');
+            document.getElementById('analysis-results').classList.add('hidden');
+            document.getElementById('reframed-output').classList.add('hidden');
+            
+            // Simulate reframing (in a real app, this would be an API call)
+            setTimeout(() => {
+                document.getElementById('loading-indicator').classList.add('hidden');
+                document.getElementById('reframed-output').classList.remove('hidden');
+                
+                // Update target bias display
+                const targetBiasElement = document.getElementById('target-bias');
+                targetBiasElement.textContent = `${targetBias} (${getBiasName(targetBias)})`;
+                
+                // Reset classes
+                targetBiasElement.className = 'px-3 py-1 rounded-full text-sm font-medium inline-block';
+                
+                // Add appropriate color classes
+                if (targetBias.startsWith('L')) {
+                    if (targetBias === 'L++') {
+                        targetBiasElement.classList.add('bg-blue-100', 'text-blue-800');
+                    } else {
+                        targetBiasElement.classList.add('bg-blue-50', 'text-blue-600');
+                    }
+                } else if (targetBias.startsWith('R')) {
+                    if (targetBias === 'R++') {
+                        targetBiasElement.classList.add('bg-purple-100', 'text-purple-800');
+                    } else {
+                        targetBiasElement.classList.add('bg-purple-50', 'text-purple-600');
+                    }
+                } else if (targetBias.startsWith('T')) {
+                    if (targetBias === 'T++') {
+                        targetBiasElement.classList.add('bg-red-100', 'text-red-800');
+                    } else {
+                        targetBiasElement.classList.add('bg-red-50', 'text-red-600');
+                    }
+                } else if (targetBias.startsWith('B')) {
+                    if (targetBias === 'B++') {
+                        targetBiasElement.classList.add('bg-green-100', 'text-green-800');
+                    } else {
+                        targetBiasElement.classList.add('bg-green-50', 'text-green-600');
+                    }
+                } else {
+                    targetBiasElement.classList.add('bg-gray-100', 'text-gray-800');
+                }
+                
+                // Generate reframed text (simplified for demo)
+                const reframedText
 </html>
